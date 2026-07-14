@@ -1,0 +1,67 @@
+id: selective-skills-mvp
+version: 1
+hypothesis: >-
+  Selective skills improve paired task quality over baseline without the
+  ceremony tax of a mandatory full workflow.
+reference_condition: baseline
+
+conditions:
+  - id: baseline
+    context: none
+    routing: none
+    workflow: native
+  - id: context-only
+    context: repository
+    routing: none
+    workflow: native
+  - id: selective-skills
+    context: repository
+    routing: selective
+    workflow: native
+  - id: full-workflow
+    context: repository
+    routing: mandatory
+    workflow: full
+
+controls:
+  model:
+    provider: PLACEHOLDER
+    identifier: PLACEHOLDER
+    build: PLACEHOLDER
+    reasoning_effort: PLACEHOLDER
+  repository:
+    base_commit: PLACEHOLDER
+  environment:
+    image: PLACEHOLDER
+    network_policy: disabled
+  budgets:
+    max_steps: 80
+    max_tokens: 120000
+    max_wall_seconds: 3600
+  human_interaction_policy: task-defined
+  retries: 0
+
+replication:
+  runs_per_task_condition: 3
+  order: randomized_within_task
+  pairing: task_and_replicate_index
+
+quality_weights:
+  correctness: 0.60
+  scope_discipline: 0.25
+  process_quality: 0.15
+
+utility:
+  lambda_cost: 0.10
+  lambda_latency: 0.05
+  lambda_human_burden: 0.15
+  normalization:
+    cost: baseline_mean
+    latency: baseline_mean
+    human_burden: one_operator_intervention
+
+reporting:
+  confidence_interval: paired_bootstrap_95
+  publish_raw_components: true
+  publish_exclusions: true
+  blind_nondeterministic_reviewers: true
