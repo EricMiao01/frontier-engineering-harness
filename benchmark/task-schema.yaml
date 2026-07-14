@@ -1,0 +1,44 @@
+id: example-task
+version: 1
+source: authored
+category: difficult_bug
+difficulty: medium
+
+repository:
+  source: fixtures/example
+  base_commit: PLACEHOLDER
+
+prompt: |
+  Describe the engineering task here.
+
+constraints:
+  - Preserve the public API.
+
+acceptance:
+  - The intended behavior is restored.
+  - Existing tests continue to pass.
+
+process_expectations:
+  reproduction_required: true
+  clarification_required: false
+  specification_required: false
+  regression_test_required: true
+
+routing_expectations:
+  useful_skills:
+    - diagnose
+    - verify
+  unnecessary_skills:
+    - clarify
+
+graders:
+  - type: command
+    command: pytest
+  - type: diff_scope
+    allowed_paths:
+      - src/
+      - tests/
+
+budgets:
+  max_steps: 80
+  max_tokens: 120000
