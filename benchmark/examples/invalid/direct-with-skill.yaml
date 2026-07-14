@@ -1,0 +1,21 @@
+id: invalid-direct-routing
+version: 1
+source: authored
+category: direct_change
+difficulty: easy
+repository:
+  source: fixtures/example
+  base_commit: abc123
+prompt: Fix the typo.
+acceptance:
+  - The typo is fixed.
+routing_expectations:
+  mode: direct
+  useful_skills:
+    - clarify
+graders:
+  - type: command
+    command: pytest
+budgets:
+  max_steps: 10
+  max_tokens: 10000
