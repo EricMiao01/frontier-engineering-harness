@@ -1,0 +1,17 @@
+id: incomplete-task
+version: 1
+source: authored
+category: direct_change
+difficulty: easy
+repository:
+  source: fixtures/example
+  base_commit: abc123
+prompt: Fix the issue.
+acceptance:
+  - The issue is fixed.
+routing_expectations:
+  mode: direct
+graders:
+  - type: command
+    command: pytest
+# budgets intentionally missing

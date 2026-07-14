@@ -1,0 +1,42 @@
+id: duplicate-alert-on-retry
+version: 1
+source: authored
+category: difficult_bug
+difficulty: hard
+repository:
+  source: fixtures/alert-service
+  base_commit: fedcba9876543210
+prompt: |
+  Retrying alert creation occasionally creates duplicate alerts for the same account and rule. Diagnose and fix the issue.
+constraints:
+  - Preserve the public API.
+  - Do not serialize all alert creation globally.
+acceptance:
+  - Duplicate alerts are prevented for the same account and rule.
+  - Different accounts can still be processed concurrently.
+process_expectations:
+  reproduction_required: true
+  root_cause_required: true
+  regression_test_required: true
+  clarification_required: false
+routing_expectations:
+  mode: selective_skills
+  useful_skills:
+    - diagnose
+    - verify
+  unnecessary_skills:
+    - clarify
+graders:
+  - type: command
+    command: pytest tests/alerts/test_retry.py
+    timeout_seconds: 60
+  - type: architecture
+    rule: no-global-lock
+  - type: diff_scope
+    allowed_paths:
+      - src/alerts/
+      - tests/alerts/
+budgets:
+  max_steps: 80
+  max_tokens: 120000
+  max_wall_seconds: 1800
