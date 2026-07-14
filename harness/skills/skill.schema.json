@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/frontier-engineering-harness/skill.schema.json",
+  "title": "Engineering Skill Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "name", "description", "invocation", "triggers", "body"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "version": {"type": "integer", "minimum": 1},
+    "name": {"type": "string", "minLength": 1, "maxLength": 80},
+    "description": {"type": "string", "minLength": 10, "maxLength": 240},
+    "invocation": {"enum": ["model", "user", "both"]},
+    "triggers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 3, "maxLength": 160}
+    },
+    "anti_triggers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 3, "maxLength": 160}
+    },
+    "body": {"type": "string", "pattern": "^(?!/).+\\.md$"},
+    "references": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^(?!/).+"}
+    },
+    "requires": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "produces": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    }
+  }
+}
