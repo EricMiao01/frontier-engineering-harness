@@ -1,0 +1,18 @@
+task_id: rename-alert-label
+available_skills:
+  - id: diagnose
+    version: 1
+decision: direct
+initiator: model
+selected_skills: []
+reason_codes:
+  - task-is-direct-and-well-specified
+  - no-skill-has-positive-expected-utility
+loaded_files: []
+events:
+  - sequence: 0
+    type: metadata-read
+    detail: Read discoverable skill metadata only.
+  - sequence: 1
+    type: decision
+    detail: Execute directly without loading a skill body.
