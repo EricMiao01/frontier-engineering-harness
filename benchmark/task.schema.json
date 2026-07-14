@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/frontier-engineering-harness/task.schema.json",
+  "title": "Frontier Engineering Harness benchmark task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "source", "category", "difficulty", "repository", "prompt", "acceptance", "routing_expectations", "graders", "budgets"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "version": {"const": 1},
+    "source": {"enum": ["authored", "mutation", "historical_pr", "public_import"]},
+    "category": {"enum": ["direct_change", "repository_exploration", "difficult_bug", "ambiguous_feature", "architecture_boundary", "external_research", "long_horizon"]},
+    "difficulty": {"enum": ["easy", "medium", "hard"]},
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "base_commit"],
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "base_commit": {"type": "string", "minLength": 1},
+        "setup_command": {"type": "string", "minLength": 1}
+      }
+    },
+    "prompt": {"type": "string", "minLength": 1},
+    "constraints": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true, "default": []},
+    "acceptance": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "process_expectations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reproduction_required": {"type": "boolean"},
+        "clarification_required": {"type": "boolean"},
+        "specification_required": {"type": "boolean"},
+        "regression_test_required": {"type": "boolean"},
+        "root_cause_required": {"type": "boolean"}
+      }
+    },
+    "routing_expectations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["direct", "selective_skills"]},
+        "useful_skills": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}, "uniqueItems": true, "default": []},
+        "unnecessary_skills": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}, "uniqueItems": true, "default": []}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"mode": {"const": "direct"}}, "required": ["mode"]},
+          "then": {"properties": {"useful_skills": {"maxItems": 0}}}
+        },
+        {
+          "if": {"properties": {"mode": {"const": "selective_skills"}}, "required": ["mode"]},
+          "then": {"required": ["useful_skills"], "properties": {"useful_skills": {"minItems": 1}}}
+        }
+      ]
+    },
+    "graders": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "command"],
+            "properties": {"type": {"const": "command"}, "command": {"type": "string", "minLength": 1}, "timeout_seconds": {"type": "integer", "minimum": 1}}
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "allowed_paths"],
+            "properties": {"type": {"const": "diff_scope"}, "allowed_paths": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}}
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "rule"],
+            "properties": {"type": {"const": "architecture"}, "rule": {"type": "string", "minLength": 1}}
+          }
+        ]
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_steps", "max_tokens"],
+      "properties": {
+        "max_steps": {"type": "integer", "minimum": 1},
+        "max_tokens": {"type": "integer", "minimum": 1},
+        "max_wall_seconds": {"type": "integer", "minimum": 1}
+      }
+    },
+    "metadata": {"type": "object", "additionalProperties": true}
+  }
+}
