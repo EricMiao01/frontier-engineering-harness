@@ -25,6 +25,7 @@ process_expectations:
   regression_test_required: true
 
 routing_expectations:
+  mode: selective_skills
   useful_skills:
     - diagnose
     - verify
