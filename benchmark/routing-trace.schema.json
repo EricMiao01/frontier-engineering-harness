@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Routing Trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "available_skills", "decision", "initiator", "selected_skills", "reason_codes", "loaded_files"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1},
+    "available_skills": {"type": "array", "items": {"$ref": "#/$defs/skillRef"}},
+    "decision": {"enum": ["direct", "skill", "compose", "clarify"]},
+    "initiator": {"enum": ["model", "user", "policy"]},
+    "selected_skills": {"type": "array", "items": {"$ref": "#/$defs/skillRef"}},
+    "reason_codes": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "loaded_files": {"type": "array", "items": {"type": "string"}},
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sequence", "type"],
+        "properties": {
+          "sequence": {"type": "integer", "minimum": 0},
+          "type": {"enum": ["metadata-read", "decision", "body-load", "reference-load", "override", "fallback"]},
+          "skill_id": {"type": "string"},
+          "path": {"type": "string"},
+          "detail": {"type": "string"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "skillRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": {"type": "string"},
+        "version": {"type": "integer", "minimum": 1}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"decision": {"const": "direct"}}},
+      "then": {"properties": {"selected_skills": {"maxItems": 0}}}
+    },
+    {
+      "if": {"properties": {"decision": {"const": "skill"}}},
+      "then": {"properties": {"selected_skills": {"minItems": 1, "maxItems": 1}}}
+    },
+    {
+      "if": {"properties": {"decision": {"const": "compose"}}},
+      "then": {"properties": {"selected_skills": {"minItems": 2}}}
+    }
+  ]
+}
