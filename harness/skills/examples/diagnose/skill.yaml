@@ -1,0 +1,26 @@
+id: diagnose
+version: 1
+name: Diagnose a reproducible failure
+description: Use when a reported defect requires reproduction, evidence gathering, and root-cause isolation before implementation.
+invocation: model
+triggers:
+  - A concrete behavior is reported as broken or regressed.
+  - The failure mechanism is not yet established.
+anti_triggers:
+  - The requested change is a direct, well-specified edit with no failing behavior.
+body: SKILL.md
+references:
+  - references/debugging-checklist.md
+requires:
+  - repository-read
+  - command-execution
+produces:
+  - reproduction-result
+  - root-cause-hypothesis
+  - regression-test-plan
+tags:
+  - bug
+  - diagnosis
+compatibility:
+  codex: Expose through the installed skill registry.
+  claude-code: Map metadata to a model-discoverable command description.
