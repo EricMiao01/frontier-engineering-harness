@@ -1,0 +1,33 @@
+id: fix-readme-spelling
+version: 1
+source: authored
+category: direct_change
+difficulty: easy
+repository:
+  source: fixtures/docs-project
+  base_commit: 0123456789abcdef
+prompt: |
+  Correct the misspelled word in the README and preserve all other content.
+constraints:
+  - Do not modify source code.
+acceptance:
+  - The spelling error is corrected.
+  - No unrelated files are changed.
+process_expectations:
+  clarification_required: false
+  specification_required: false
+routing_expectations:
+  mode: direct
+  useful_skills: []
+  unnecessary_skills:
+    - clarify
+    - diagnose
+graders:
+  - type: command
+    command: pytest
+  - type: diff_scope
+    allowed_paths:
+      - README.md
+budgets:
+  max_steps: 10
+  max_tokens: 10000
