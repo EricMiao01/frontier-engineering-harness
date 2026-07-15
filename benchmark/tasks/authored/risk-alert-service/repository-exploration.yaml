@@ -1,0 +1,63 @@
+id: risk-alert-notification-path
+version: 1
+source: authored
+category: repository_exploration
+difficulty: medium
+repository:
+  source: benchmark/fixtures/risk-alert-service
+  base_commit: healthy-v1
+prompt: |
+  Trace the complete path from transaction screening to an investigator notification.
+  Write the findings to INVESTIGATION.md. Include the service methods, repository and port
+  boundaries, and every persisted or externally visible state change. Do not modify code.
+constraints:
+  - Base findings only on the repository contents.
+  - Distinguish transaction screening from case creation.
+acceptance:
+  - INVESTIGATION.md identifies the screening and case-creation entry points.
+  - The document identifies repository and notification or audit boundaries.
+  - The document describes transaction, alert, case, audit, and notification state changes.
+process_expectations:
+  reproduction_required: false
+  clarification_required: false
+  specification_required: false
+  regression_test_required: false
+routing_expectations:
+  mode: selective_skills
+  useful_skills:
+    - explore
+  unnecessary_skills:
+    - diagnose
+    - clarify
+graders:
+  - type: command
+    timeout_seconds: 30
+    command: |
+      python - <<'PY'
+      from pathlib import Path
+
+      text = Path("INVESTIGATION.md").read_text(encoding="utf-8").lower()
+      required = [
+          "screeningservice",
+          "screen",
+          "caseservice",
+          "open_case",
+          "transaction",
+          "alert",
+          "case",
+          "audit",
+          "notification",
+          "repository",
+          "port",
+      ]
+      missing = [term for term in required if term not in text]
+      assert not missing, f"missing required concepts: {missing}"
+      PY
+budgets:
+  max_steps: 50
+  max_tokens: 50000
+  max_wall_seconds: 300
+metadata:
+  fixture: risk-alert-service
+  benchmark_purpose: repository navigation and architecture comprehension
+  grading_limitation: keyword coverage checks structure but not full semantic accuracy
