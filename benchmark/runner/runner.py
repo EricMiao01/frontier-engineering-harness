@@ -9,7 +9,7 @@ import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import yaml
 
@@ -84,6 +84,19 @@ def _run_command(command: str, cwd: Path, timeout_seconds: int, env: dict[str, s
         )
 
 
+def _run_process(args: Sequence[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            list(args),
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"unable to execute {args[0]!r}: {exc}") from exc
+
+
 def _load_task(task_path: Path) -> dict[str, Any]:
     schema = load_schema()
     issues = validate_file(task_path, schema)
@@ -97,7 +110,7 @@ def _load_task(task_path: Path) -> dict[str, Any]:
     return task
 
 
-def _resolve_source(task_path: Path, source: str) -> Path:
+def _resolve_local_source(task_path: Path, source: str) -> Path:
     candidate = Path(source)
     if not candidate.is_absolute():
         repo_relative = Path.cwd() / candidate
@@ -106,16 +119,52 @@ def _resolve_source(task_path: Path, source: str) -> Path:
     return candidate.resolve()
 
 
+def _is_git_source(source: str) -> bool:
+    return source.startswith(("https://", "http://", "ssh://", "git://", "file://", "git@")) or source.endswith(".git")
+
+
+def _copy_local_workspace(task_path: Path, source: str, workspace: Path) -> None:
+    resolved = _resolve_local_source(task_path, source)
+    if not resolved.is_dir():
+        raise ValueError(f"repository source is not a local directory: {resolved}")
+    shutil.copytree(resolved, workspace, ignore=shutil.ignore_patterns(".git", ".pytest_cache", "__pycache__"))
+
+
+def _clone_git_workspace(source: str, base_commit: str, workspace: Path) -> None:
+    clone = _run_process(["git", "clone", "--no-checkout", "--quiet", source, str(workspace)])
+    if clone.returncode != 0:
+        detail = clone.stderr.strip() or clone.stdout.strip() or "unknown git clone error"
+        raise ValueError(f"git clone failed for {source!r}: {detail}")
+
+    checkout = _run_process(["git", "checkout", "--detach", "--quiet", base_commit], cwd=workspace)
+    if checkout.returncode != 0:
+        detail = checkout.stderr.strip() or checkout.stdout.strip() or "unknown git checkout error"
+        raise ValueError(f"git checkout failed for base_commit {base_commit!r}: {detail}")
+
+    head = _run_process(["git", "rev-parse", "HEAD"], cwd=workspace)
+    requested = _run_process(["git", "rev-parse", f"{base_commit}^{{commit}}"], cwd=workspace)
+    if head.returncode != 0 or requested.returncode != 0:
+        raise ValueError(f"unable to verify checked-out base_commit {base_commit!r}")
+    if head.stdout.strip() != requested.stdout.strip():
+        raise ValueError(
+            f"checked-out commit {head.stdout.strip()!r} does not match requested base_commit {requested.stdout.strip()!r}"
+        )
+
+
 def _prepare_workspace(task_path: Path, task: dict[str, Any], workspace_root: Path | None) -> Path:
-    source = _resolve_source(task_path, task["repository"]["source"])
-    if not source.is_dir():
-        raise ValueError(f"repository source is not a local directory: {source}")
+    repository = task["repository"]
+    source = repository["source"]
+    base_commit = repository["base_commit"]
     root = workspace_root or Path(tempfile.mkdtemp(prefix="feh-run-"))
     root.mkdir(parents=True, exist_ok=True)
     workspace = root / "workspace"
     if workspace.exists():
         shutil.rmtree(workspace)
-    shutil.copytree(source, workspace, ignore=shutil.ignore_patterns(".git", ".pytest_cache", "__pycache__"))
+
+    if _is_git_source(source):
+        _clone_git_workspace(source, base_commit, workspace)
+    else:
+        _copy_local_workspace(task_path, source, workspace)
     return workspace
 
 
