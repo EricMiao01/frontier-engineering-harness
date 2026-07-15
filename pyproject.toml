@@ -19,6 +19,7 @@ dev = ["pytest>=8.0"]
 feh-validate-tasks = "benchmark.validate_tasks:main"
 feh-run-task = "benchmark.runner.cli:main"
 feh-import-swe-bench = "benchmark.importers.swe_bench:main"
+feh-materialize-swe-bench = "benchmark.importers.swe_bench_snapshot:main"
 
 [tool.setuptools.packages.find]
 include = ["benchmark*"]
