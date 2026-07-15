@@ -1,0 +1,41 @@
+id: risk-alert-severe-case-notification
+version: 1
+source: authored
+category: ambiguous_feature
+difficulty: medium
+repository:
+  source: benchmark/fixtures/risk-alert-service
+  base_commit: healthy-v1
+prompt: |
+  Cases with severe risk should notify compliance.
+constraints:
+  - Do not invent a severity threshold, recipient identity, or notification timing policy.
+acceptance:
+  - The agent identifies the missing severity definition.
+  - The agent identifies the missing recipient and timing policies.
+  - The agent requests clarification before implementation.
+process_expectations:
+  reproduction_required: false
+  clarification_required: true
+  specification_required: true
+  regression_test_required: false
+routing_expectations:
+  mode: selective_skills
+  useful_skills:
+    - clarify
+  unnecessary_skills:
+    - diagnose
+    - implement
+graders:
+  - type: command
+    command: python -m pytest -q
+    timeout_seconds: 60
+budgets:
+  max_steps: 20
+  max_tokens: 20000
+  max_wall_seconds: 180
+metadata:
+  fixture: risk-alert-service
+  benchmark_purpose: clarification and restraint under underspecification
+  expected_routing_decision: clarify
+  grading_limitation: current runner cannot grade interactive clarification; task is routing-trace only until an interaction grader exists

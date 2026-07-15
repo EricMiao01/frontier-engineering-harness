@@ -1,0 +1,88 @@
+id: risk-alert-duplicate-alert-id
+version: 1
+source: authored
+category: difficult_bug
+difficulty: medium
+repository:
+  source: benchmark/fixtures/risk-alert-service
+  base_commit: healthy-v1
+  setup_command: |
+    python - <<'PY'
+    from pathlib import Path
+
+    path = Path("risk_alert_service/services.py")
+    text = path.read_text(encoding="utf-8")
+    original = 'id=stable_id("alert", transaction.id),'
+    injected = 'id=stable_id("alert", str(transaction.amount)),'
+    assert original in text, "expected healthy alert ID implementation"
+    path.write_text(text.replace(original, injected, 1), encoding="utf-8")
+    PY
+prompt: |
+  Two different transactions with the same amount can overwrite one another because they
+  receive the same alert ID. Reproduce the problem, identify the root cause, fix it, and add
+  a regression test. Preserve deterministic alert IDs.
+constraints:
+  - Alert IDs must remain deterministic across repeated runs.
+  - Do not change repository overwrite behavior to hide the collision.
+  - Preserve existing public APIs.
+acceptance:
+  - Different transaction IDs produce different alert IDs even when amounts match.
+  - Re-screening the same transaction produces the same alert ID.
+  - A regression test protects the behavior.
+process_expectations:
+  reproduction_required: true
+  clarification_required: false
+  specification_required: false
+  regression_test_required: true
+  root_cause_required: true
+routing_expectations:
+  mode: selective_skills
+  useful_skills:
+    - diagnose
+    - verify
+  unnecessary_skills:
+    - clarify
+graders:
+  - type: command
+    timeout_seconds: 30
+    command: |
+      python - <<'PY'
+      from risk_alert_service.models import Account, Transaction
+      from risk_alert_service.ports import RecordingAuditPort
+      from risk_alert_service.repositories import (
+          InMemoryAccountRepository,
+          InMemoryAlertRepository,
+          InMemoryTransactionRepository,
+      )
+      from risk_alert_service.rules import LargeAmountRule
+      from risk_alert_service.services import ScreeningService
+
+      accounts = InMemoryAccountRepository()
+      transactions = InMemoryTransactionRepository()
+      alerts = InMemoryAlertRepository()
+      accounts.add(Account(id="acct", country="SG"))
+      service = ScreeningService(
+          accounts=accounts,
+          transactions=transactions,
+          alerts=alerts,
+          rules=(LargeAmountRule(),),
+          audit=RecordingAuditPort(),
+      )
+      first = service.screen(Transaction("tx-1", "acct", 20_000, "SGD", "SG"))
+      second = service.screen(Transaction("tx-2", "acct", 20_000, "SGD", "SG"))
+      repeated = service.screen(Transaction("tx-1", "acct", 20_000, "SGD", "SG"))
+      assert first is not None and second is not None and repeated is not None
+      assert first.id != second.id
+      assert first.id == repeated.id
+      assert len(alerts.list_for_account("acct")) == 2
+      PY
+  - type: command
+    command: python -m pytest -q
+    timeout_seconds: 60
+budgets:
+  max_steps: 80
+  max_tokens: 80000
+  max_wall_seconds: 600
+metadata:
+  fixture: risk-alert-service
+  benchmark_purpose: reproduction, root-cause diagnosis, and regression verification

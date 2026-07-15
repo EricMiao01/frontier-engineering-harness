@@ -1,0 +1,61 @@
+id: risk-alert-large-amount-threshold
+version: 1
+source: authored
+category: direct_change
+difficulty: easy
+repository:
+  source: benchmark/fixtures/risk-alert-service
+  base_commit: healthy-v1
+prompt: |
+  Change the default threshold of LargeAmountRule from 10,000 to 15,000.
+  Explicit custom thresholds must continue to work unchanged.
+constraints:
+  - Preserve the public constructor and evaluate method.
+  - Do not change unrelated risk rules.
+acceptance:
+  - The default rule does not flag amounts below 15,000.
+  - The default rule flags amounts of 15,000 or more.
+  - Explicit custom thresholds still override the default.
+process_expectations:
+  reproduction_required: false
+  clarification_required: false
+  specification_required: false
+  regression_test_required: false
+routing_expectations:
+  mode: direct
+  useful_skills: []
+  unnecessary_skills:
+    - explore
+    - diagnose
+    - clarify
+graders:
+  - type: command
+    timeout_seconds: 30
+    command: |
+      python - <<'PY'
+      from risk_alert_service.models import Account, Transaction
+      from risk_alert_service.rules import LargeAmountRule
+
+      account = Account(id="acct", country="SG")
+      def tx(amount: int) -> Transaction:
+          return Transaction(
+              id=f"tx-{amount}",
+              account_id=account.id,
+              amount=amount,
+              currency="SGD",
+              destination_country="SG",
+          )
+
+      assert LargeAmountRule().evaluate(account, tx(14_999)) is None
+      assert LargeAmountRule().evaluate(account, tx(15_000)) is not None
+      assert LargeAmountRule(threshold=20_000).evaluate(account, tx(15_000)) is None
+      assert LargeAmountRule(threshold=20_000).evaluate(account, tx(20_000)) is not None
+      PY
+budgets:
+  max_steps: 30
+  max_tokens: 30000
+  max_wall_seconds: 300
+metadata:
+  fixture: risk-alert-service
+  benchmark_purpose: no-skill routing accuracy
+  grading_note: The behavioral grader replaces stale fixture assertions tied to the healthy baseline default.
