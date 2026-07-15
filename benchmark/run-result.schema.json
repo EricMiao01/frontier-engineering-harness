@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/frontier-engineering-harness/run-result.schema.json",
+  "title": "Frontier Engineering Harness run result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "task_id", "status", "started_at_unix", "duration_seconds", "graders"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string", "format": "uuid"},
+    "task_id": {"type": ["string", "null"]},
+    "status": {"enum": ["passed", "agent_failed", "grader_failed", "timeout", "invalid_configuration"]},
+    "started_at_unix": {"type": "number"},
+    "duration_seconds": {"type": "number", "minimum": 0},
+    "workspace": {"type": ["string", "null"]},
+    "agent": {"$ref": "#/$defs/commandResultOrNull"},
+    "graders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "passed", "command_result", "message"],
+        "properties": {
+          "type": {"const": "command"},
+          "passed": {"type": "boolean"},
+          "command_result": {"$ref": "#/$defs/commandResultOrNull"},
+          "message": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "error": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "commandResultOrNull": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["command", "exit_code", "duration_seconds", "stdout", "stderr", "timed_out"],
+          "properties": {
+            "command": {"type": "string"},
+            "exit_code": {"type": ["integer", "null"]},
+            "duration_seconds": {"type": "number", "minimum": 0},
+            "stdout": {"type": "string"},
+            "stderr": {"type": "string"},
+            "timed_out": {"type": "boolean"}
+          }
+        }
+      ]
+    }
+  }
+}
