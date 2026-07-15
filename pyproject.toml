@@ -13,6 +13,7 @@ dev = ["pytest>=8.0"]
 
 [project.scripts]
 feh-validate-tasks = "benchmark.validate_tasks:main"
+feh-run-task = "benchmark.runner.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
