@@ -1,0 +1,47 @@
+name: Materialize SWE-bench subset
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Hugging Face dataset revision, tag, or commit SHA
+        required: true
+        type: string
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install materialization dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . datasets huggingface_hub pyarrow
+
+      - name: Materialize pinned subset
+        run: |
+          python -m benchmark.importers.swe_bench_snapshot \
+            --revision "${{ inputs.revision }}" \
+            --selection benchmark/datasets/swe-bench-verified/selection.yaml \
+            --output-dir artifacts/swe-bench/manifests \
+            --snapshot artifacts/swe-bench/snapshot.json
+
+      - name: Validate generated manifests
+        run: python -m benchmark.validate_tasks artifacts/swe-bench/manifests
+
+      - name: Upload review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: swe-bench-subset-${{ github.run_id }}
+          path: artifacts/swe-bench
+          if-no-files-found: error
+          retention-days: 14

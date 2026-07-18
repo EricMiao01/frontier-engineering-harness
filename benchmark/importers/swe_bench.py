@@ -39,13 +39,28 @@ def load_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
-def convert_record(record: dict[str, Any], *, dataset_name: str) -> dict[str, Any]:
+def convert_record(
+    record: dict[str, Any],
+    *,
+    dataset_name: str,
+    dataset_revision: str | None = None,
+) -> dict[str, Any]:
     missing = [field for field in REQUIRED_FIELDS if not isinstance(record.get(field), str) or not record[field].strip()]
     if missing:
         raise ValueError(f"missing required SWE-bench fields: {', '.join(missing)}")
 
     instance_id = record["instance_id"].strip()
     repo = record["repo"].strip()
+    metadata: dict[str, Any] = {
+        "dataset": dataset_name,
+        "dataset_schema": "swe-bench-v1",
+        "instance_id": instance_id,
+        "original_repo": repo,
+        "official_evaluation_required": True,
+    }
+    if dataset_revision:
+        metadata["dataset_revision"] = dataset_revision
+
     task = {
         "id": _slug(instance_id),
         "version": 1,
@@ -76,24 +91,13 @@ def convert_record(record: dict[str, Any], *, dataset_name: str) -> dict[str, An
             "mode": "selective_skills",
             "useful_skills": ["explore", "diagnose", "verify"],
         },
-        "graders": [
-            {
-                "type": "diff_scope",
-                "allowed_paths": ["."],
-            }
-        ],
+        "graders": [{"type": "diff_scope", "allowed_paths": ["."]}],
         "budgets": {
             "max_steps": 200,
             "max_tokens": 200000,
             "max_wall_seconds": 7200,
         },
-        "metadata": {
-            "dataset": dataset_name,
-            "dataset_schema": "swe-bench-v1",
-            "instance_id": instance_id,
-            "original_repo": repo,
-            "official_evaluation_required": True,
-        },
+        "metadata": metadata,
     }
     for field in ("version", "created_at", "environment_setup_commit"):
         value = record.get(field)
@@ -107,6 +111,7 @@ def import_records(
     output_dir: Path,
     *,
     dataset_name: str,
+    dataset_revision: str | None = None,
     instance_ids: set[str] | None = None,
     limit: int | None = None,
 ) -> list[Path]:
@@ -121,7 +126,7 @@ def import_records(
     output_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for record in sorted(selected, key=lambda item: str(item.get("instance_id", ""))):
-        task = convert_record(record, dataset_name=dataset_name)
+        task = convert_record(record, dataset_name=dataset_name, dataset_revision=dataset_revision)
         path = output_dir / f"{task['id']}.yaml"
         path.write_text(yaml.safe_dump(task, sort_keys=False, allow_unicode=True), encoding="utf-8")
         written.append(path)
@@ -133,6 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("input", type=Path)
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("--dataset-name", default="princeton-nlp/SWE-bench_Verified")
+    parser.add_argument("--dataset-revision")
     parser.add_argument("--instance-id", action="append", default=[])
     parser.add_argument("--limit", type=int)
     args = parser.parse_args(argv)
@@ -143,6 +149,7 @@ def main(argv: list[str] | None = None) -> int:
         load_records(args.input),
         args.output_dir,
         dataset_name=args.dataset_name,
+        dataset_revision=args.dataset_revision,
         instance_ids=set(args.instance_id) or None,
         limit=args.limit,
     )
